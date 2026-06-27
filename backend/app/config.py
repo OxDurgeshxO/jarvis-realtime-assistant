@@ -3,17 +3,16 @@ from typing import List
 
 class Settings(BaseSettings):
     PROJECT_NAME: str = "J.A.R.V.I.S."
-    API_V1_STR: str = "/api/v1"
     
     # CORS Origins
     CORS_ORIGINS: List[str] = ["*"]
     
-    # OpenAI Settings
-    OPENAI_API_KEY: str = ""
-    OPENAI_MODEL: str = "gpt-4o"
-    OPENAI_TTS_MODEL: str = "tts-1"
-    OPENAI_TTS_VOICE: str = "nova"
-    OPENAI_STT_MODEL: str = "whisper-1"
+    # Google Gemini Settings
+    GOOGLE_API_KEY: str = ""
+    GEMINI_MODEL: str = "gemini-2.0-flash"
+    
+    # TTS Settings - Edge-TTS (free, no API key needed)
+    EDGE_TTS_VOICE: str = "en-US-JennyNeural"  # Natural feminine voice
     
     # WebSocket Settings
     WS_MAX_CONNECTIONS: int = 100

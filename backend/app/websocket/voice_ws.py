@@ -1,10 +1,22 @@
 import logging
 import json
+import tempfile
+import os
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
-from app.services.openai_service import openai_service
+from app.services.ai_service import ai_service
+import edge_tts
+from app.config import settings
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
+
+# Try to import whisper, fall back gracefully
+try:
+    import whisper
+    WHISPER_AVAILABLE = True
+except ImportError:
+    WHISPER_AVAILABLE = False
+    logger.warning("whisper not installed. STT will be simulated.")
 
 @router.websocket("/voice")
 async def voice_websocket_endpoint(websocket: WebSocket):
@@ -20,9 +32,7 @@ async def voice_websocket_endpoint(websocket: WebSocket):
             message = await websocket.receive()
             
             if "bytes" in message:
-                # Accumulate audio chunks
                 audio_buffer.extend(message["bytes"])
-                # logger.debug(f"Received {len(message['bytes'])} bytes of audio")
                 
             elif "text" in message:
                 data = json.loads(message["text"])
@@ -32,32 +42,41 @@ async def voice_websocket_endpoint(websocket: WebSocket):
                         await websocket.send_json({"type": "error", "content": "No audio received"})
                         continue
                         
-                    logger.info(f"Processing accumulated audio ({len(audio_buffer)} bytes)")
+                    logger.info(f"Processing audio ({len(audio_buffer)} bytes)")
                     await websocket.send_json({"type": "status", "content": "thinking"})
                     
                     try:
-                        # 1. STT (Whisper)
-                        transcript = await openai_service.speech_to_text(bytes(audio_buffer))
+                        # 1. STT (local Whisper)
+                        transcript = "Hello Jarvis"
+                        if WHISPER_AVAILABLE and len(audio_buffer) > 1000:
+                            model = whisper.load_model("base")
+                            with tempfile.NamedTemporaryFile(delete=False, suffix=".wav") as f:
+                                f.write(bytes(audio_buffer))
+                                temp_path = f.name
+                            result = model.transcribe(temp_path)
+                            transcript = result["text"]
+                            os.unlink(temp_path)
+                        elif not WHISPER_AVAILABLE:
+                            transcript = "[Whisper not installed - using placeholder transcript]"
+                        
                         logger.info(f"Transcript: {transcript}")
                         await websocket.send_json({"type": "transcript", "content": transcript})
                         
-                        # 2. GPT Response
-                        # For simplicity, we'll use a non-streaming chat call here 
-                        # or we could maintain a session history.
-                        # For now, let's just get a direct response.
-                        response_text = await openai_service.get_chat_response(transcript)
+                        # 2. Gemini Response
+                        response_text = await ai_service.get_chat_response(transcript)
                         logger.info(f"Response: {response_text}")
                         
-                        # 3. TTS (Nova)
+                        # 3. TTS (Edge-TTS - free)
                         await websocket.send_json({"type": "status", "content": "speaking"})
-                        audio_response = await openai_service.text_to_speech(response_text)
+                        communicate = edge_tts.Communicate(response_text, settings.EDGE_TTS_VOICE)
+                        audio_response = b""
+                        async for chunk in communicate.stream():
+                            if chunk["type"] == "audio":
+                                audio_response += chunk["data"]
                         
-                        # 4. Send audio back
-                        # We send the whole audio as one binary message for now, 
-                        # or we could chunk it if needed.
+                        # Send audio back
                         await websocket.send_bytes(audio_response)
                         
-                        # Clear buffer for next turn
                         audio_buffer = bytearray()
                         await websocket.send_json({"type": "status", "content": "listening"})
                         

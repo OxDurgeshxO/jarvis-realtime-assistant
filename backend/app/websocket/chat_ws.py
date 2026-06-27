@@ -1,7 +1,7 @@
 import logging
 import json
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
-from app.services.openai_service import openai_service
+from app.services.ai_service import ai_service
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -20,16 +20,16 @@ async def chat_websocket_endpoint(websocket: WebSocket):
                 content = message_data.get("content")
                 try:
                     full_response = ""
-                    async for token in openai_service.stream_chat_response(content, history):
+                    async for token in ai_service.stream_chat_response(content, history):
                         full_response += token
                         await websocket.send_json({
                             "type": "token",
                             "content": token
                         })
                     
-                    # Update history
-                    history.append({"role": "user", "content": content})
-                    history.append({"role": "assistant", "content": full_response})
+                    # Update history for Gemini format
+                    history.append({"role": "user", "parts": [content]})
+                    history.append({"role": "model", "parts": [full_response]})
                     
                     await websocket.send_json({"type": "done"})
                 except Exception as e:
