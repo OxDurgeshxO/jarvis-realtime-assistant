@@ -1,6 +1,7 @@
 @echo off
 color 0A
 title J.A.R.V.I.S. Launcher
+cd /d "%~dp0"
 
 echo.
 echo  =============================================
@@ -16,7 +17,7 @@ if not exist "backend\.env" (
     echo.
     set /p APIKEY= Enter your Google Gemini API Key: 
     echo GOOGLE_API_KEY=%APIKEY%> backend\.env
-    echo  [OK] .env file created!
+    echo  [OK] .env file created at backend\.env
     echo.
 ) else (
     echo  [OK] .env file already exists.
@@ -28,7 +29,9 @@ if not exist "backend\.env" (
 :: -----------------------------------------------
 python --version >nul 2>&1
 if errorlevel 1 (
-    echo  [ERROR] Python not found! Please install Python 3.10+ from https://python.org
+    echo  [ERROR] Python not found!
+    echo  Please install Python 3.10+ from https://python.org
+    echo  Make sure to check "Add Python to PATH" during install.
     pause
     exit /b 1
 )
@@ -39,7 +42,8 @@ echo  [OK] Python found.
 :: -----------------------------------------------
 node --version >nul 2>&1
 if errorlevel 1 (
-    echo  [ERROR] Node.js not found! Please install Node.js from https://nodejs.org
+    echo  [ERROR] Node.js not found!
+    echo  Please install Node.js from https://nodejs.org
     pause
     exit /b 1
 )
@@ -60,10 +64,16 @@ if not exist "backend\venv" (
 :: -----------------------------------------------
 :: STEP 5: Install backend dependencies
 :: -----------------------------------------------
-echo  [*] Installing backend dependencies (this may take a few minutes)...
+echo  [*] Installing backend dependencies...
+echo      (First time takes 5-10 mins, please wait)
 call backend\venv\Scripts\activate.bat
-pip install -r backend\requirements.txt --quiet
-echo  [OK] Backend dependencies installed.
+pip install -r backend\requirements.txt -q
+if errorlevel 1 (
+    echo  [ERROR] Failed to install backend dependencies!
+    pause
+    exit /b 1
+)
+echo  [OK] Backend dependencies ready.
 echo.
 
 :: -----------------------------------------------
@@ -71,26 +81,34 @@ echo.
 :: -----------------------------------------------
 echo  [*] Installing frontend dependencies...
 cd frontend
-npm install --silent
+npm install
+if errorlevel 1 (
+    echo  [ERROR] Failed to install frontend dependencies!
+    cd ..
+    pause
+    exit /b 1
+)
 cd ..
-echo  [OK] Frontend dependencies installed.
+echo  [OK] Frontend dependencies ready.
 echo.
 
 :: -----------------------------------------------
 :: STEP 7: Start Backend in new window
 :: -----------------------------------------------
 echo  [*] Starting Backend on http://localhost:3000 ...
-start "JARVIS Backend" cmd /k "cd backend && call venv\Scripts\activate.bat && uvicorn app.main:app --reload --port 3000"
+start "JARVIS Backend" cmd /k "cd /d "%~dp0backend" && call venv\Scripts\activate.bat && uvicorn app.main:app --reload --port 3000"
 
-timeout /t 3 /nobreak >nul
+echo  [*] Waiting for backend to start...
+timeout /t 5 /nobreak >nul
 
 :: -----------------------------------------------
 :: STEP 8: Start Frontend in new window
 :: -----------------------------------------------
 echo  [*] Starting Frontend on http://localhost:5173 ...
-start "JARVIS Frontend" cmd /k "cd frontend && npm run dev"
+start "JARVIS Frontend" cmd /k "cd /d "%~dp0frontend" && npm run dev"
 
-timeout /t 4 /nobreak >nul
+echo  [*] Waiting for frontend to start...
+timeout /t 6 /nobreak >nul
 
 :: -----------------------------------------------
 :: STEP 9: Open browser
@@ -100,12 +118,13 @@ start http://localhost:5173
 
 echo.
 echo  =============================================
-echo   J.A.R.V.I.S. is starting up!
-echo   Frontend: http://localhost:5173
-echo   Backend:  http://localhost:3000
+echo   J.A.R.V.I.S. is LIVE!
 echo.
-echo   Close the Backend and Frontend windows
-echo   to stop the app.
+echo   Open this URL in your browser:
+echo   ---> http://localhost:5173 <---
+echo.
+echo   To STOP: Close the Backend and
+echo   Frontend windows.
 echo  =============================================
 echo.
 pause
