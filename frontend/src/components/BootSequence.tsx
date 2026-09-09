@@ -56,12 +56,33 @@ export default function BootSequence({ progress, system, onDone }: Props) {
       ].filter(Boolean) as string[]
     : [];
 
+  const handleSkip = () => {
+    doneRef.current = true;
+    onDoneRef.current();
+  };
+
+  useEffect(() => {
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape" || e.key === " " || e.key === "Enter") {
+        handleSkip();
+      }
+    };
+    window.addEventListener("keydown", handleKey);
+    return () => window.removeEventListener("keydown", handleKey);
+  }, []);
+
   return (
     <div
       className={`fixed inset-0 z-50 flex items-center justify-center bg-[#02040a] transition-opacity duration-500 ${
-        fading ? "opacity-0" : "opacity-100"
+        fading ? "opacity-0 pointer-events-none" : "opacity-100"
       }`}
     >
+      <button
+        onClick={handleSkip}
+        className="absolute top-4 right-6 z-50 px-3 py-1 rounded border border-cyan-400/30 bg-cyan-950/60 text-[11px] font-mono tracking-widest text-cyan-300 hover:bg-cyan-400/20 transition cursor-pointer"
+      >
+        SKIP BOOT [ESC] ↵
+      </button>
       <div className="hud-grid scanlines absolute inset-0 opacity-60" />
       <div className="relative w-[min(92vw,560px)] px-6">
         {/* Rotating emblem */}

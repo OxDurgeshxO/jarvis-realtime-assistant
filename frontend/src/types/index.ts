@@ -1,8 +1,20 @@
+export type MessageRole = 'user' | 'assistant' | 'jarvis' | 'system'
+export type ActionType = 'open' | 'search' | 'none'
+
+export interface JarvisResponse {
+  text: string
+  action?: ActionType
+  url?: string
+}
+
 export interface Message {
   id: string
-  role: 'user' | 'assistant' | 'system'
-  content: string
-  timestamp: number
+  role: MessageRole
+  content?: string
+  text?: string
+  timestamp?: number
+  time?: number
+  link?: { url: string; label: string }
 }
 
 export interface WsMessage {

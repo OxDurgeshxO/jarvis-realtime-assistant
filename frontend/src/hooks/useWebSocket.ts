@@ -10,29 +10,44 @@ export function useWebSocket(onMessage: MessageHandler, onBinary?: BinaryHandler
 
   const connect = useCallback(
     (url: string) => {
-      if (wsRef.current) {
-        wsRef.current.close()
-      }
+      try {
+        if (wsRef.current) {
+          wsRef.current.close()
+        }
 
-      const ws = new WebSocket(url)
-      ws.binaryType = 'arraybuffer'
-      wsRef.current = ws
+        let wsUrl = url
+        if (!url.startsWith('ws://') && !url.startsWith('wss://')) {
+          const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
+          const host = window.location.host || 'localhost:5178'
+          wsUrl = `${protocol}//${host}${url.startsWith('/') ? url : '/' + url}`
+        }
 
-      ws.onopen = () => setIsConnected(true)
-      ws.onclose = () => setIsConnected(false)
-      ws.onerror = () => setIsConnected(false)
+        const ws = new WebSocket(wsUrl)
+        ws.binaryType = 'arraybuffer'
+        wsRef.current = ws
 
-      ws.onmessage = (event) => {
-        if (event.data instanceof ArrayBuffer) {
-          onBinary?.(event.data)
-        } else {
-          try {
-            const data: WsMessage = JSON.parse(event.data)
-            onMessage(data)
-          } catch {
-            console.warn('Unparseable WS message:', event.data)
+        ws.onopen = () => setIsConnected(true)
+        ws.onclose = () => setIsConnected(false)
+        ws.onerror = (err) => {
+          console.warn('WebSocket connection error:', err)
+          setIsConnected(false)
+        }
+
+        ws.onmessage = (event) => {
+          if (event.data instanceof ArrayBuffer) {
+            onBinary?.(event.data)
+          } else {
+            try {
+              const data: WsMessage = JSON.parse(event.data)
+              onMessage(data)
+            } catch {
+              console.warn('Unparseable WS message:', event.data)
+            }
           }
         }
+      } catch (err) {
+        console.warn('Failed to initialize WebSocket:', err)
+        setIsConnected(false)
       }
     },
     [onMessage, onBinary]
