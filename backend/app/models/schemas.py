@@ -14,3 +14,4 @@ class ChatResponse(BaseModel):
 
 class VoiceSpeakRequest(BaseModel):
     text: str
+    voice: Optional[str] = None

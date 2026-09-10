@@ -1,22 +1,11 @@
 import logging
 import json
-import tempfile
-import os
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 from app.services.ai_service import ai_service
-import edge_tts
-from app.config import settings
+from app.services.audio_service import audio_service
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
-
-# Try to import whisper, fall back gracefully
-try:
-    import whisper
-    WHISPER_AVAILABLE = True
-except ImportError:
-    WHISPER_AVAILABLE = False
-    logger.warning("whisper not installed. STT will be simulated.")
 
 @router.websocket("/voice")
 async def voice_websocket_endpoint(websocket: WebSocket):
@@ -36,47 +25,39 @@ async def voice_websocket_endpoint(websocket: WebSocket):
                 
             elif "text" in message:
                 data = json.loads(message["text"])
+                msg_type = data.get("type")
                 
-                if data.get("type") == "end_of_audio":
+                if msg_type == "end_of_audio":
                     if not audio_buffer:
                         await websocket.send_json({"type": "error", "content": "No audio received"})
+                        await websocket.send_json({"type": "status", "content": "listening"})
                         continue
                         
-                    logger.info(f"Processing audio ({len(audio_buffer)} bytes)")
+                    logger.info(f"Processing audio chunk ({len(audio_buffer)} bytes)")
                     await websocket.send_json({"type": "status", "content": "thinking"})
                     
                     try:
-                        # 1. STT (local Whisper)
-                        transcript = "Hello Jarvis"
-                        if WHISPER_AVAILABLE and len(audio_buffer) > 1000:
-                            model = whisper.load_model("base")
-                            with tempfile.NamedTemporaryFile(delete=False, suffix=".wav") as f:
-                                f.write(bytes(audio_buffer))
-                                temp_path = f.name
-                            result = model.transcribe(temp_path)
-                            transcript = result["text"]
-                            os.unlink(temp_path)
-                        elif not WHISPER_AVAILABLE:
-                            transcript = "[Whisper not installed - using placeholder transcript]"
+                        # 1. STT via cached singleton audio_service
+                        transcript = audio_service.transcribe_audio(bytes(audio_buffer))
+                        if not transcript:
+                            transcript = "[Could not recognize speech, sir. Please try speaking again.]"
                         
                         logger.info(f"Transcript: {transcript}")
                         await websocket.send_json({"type": "transcript", "content": transcript})
                         
-                        # 2. Gemini Response
+                        # 2. Gemini Response via ai_service
                         response_text = await ai_service.get_chat_response(transcript)
-                        logger.info(f"Response: {response_text}")
+                        logger.info(f"JARVIS response: {response_text}")
                         
-                        # 3. TTS (Edge-TTS - free)
+                        # 3. TTS synthesis via Edge-TTS
                         await websocket.send_json({"type": "status", "content": "speaking"})
-                        communicate = edge_tts.Communicate(response_text, settings.EDGE_TTS_VOICE)
-                        audio_response = b""
-                        async for chunk in communicate.stream():
-                            if chunk["type"] == "audio":
-                                audio_response += chunk["data"]
+                        audio_response = await audio_service.synthesize_speech(response_text)
                         
-                        # Send audio back
-                        await websocket.send_bytes(audio_response)
+                        # Stream audio back to client
+                        if audio_response:
+                            await websocket.send_bytes(audio_response)
                         
+                        # Reset buffer and resume listening
                         audio_buffer = bytearray()
                         await websocket.send_json({"type": "status", "content": "listening"})
                         
@@ -86,7 +67,7 @@ async def voice_websocket_endpoint(websocket: WebSocket):
                         await websocket.send_json({"type": "status", "content": "listening"})
                         audio_buffer = bytearray()
 
-                elif data.get("type") == "clear":
+                elif msg_type == "clear":
                     audio_buffer = bytearray()
                     await websocket.send_json({"type": "status", "content": "listening"})
 
@@ -96,5 +77,5 @@ async def voice_websocket_endpoint(websocket: WebSocket):
         logger.error(f"Voice WebSocket error: {e}")
         try:
             await websocket.close()
-        except:
+        except Exception:
             pass

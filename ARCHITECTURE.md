@@ -1,153 +1,94 @@
-# J.A.R.V.I.S. — Realtime AI Assistant Architecture
+# J.A.R.V.I.S. — Realtime AI Assistant System Architecture
 
-## Overview
-A realtime AI assistant with both text chat and voice interfaces. Users can type messages or speak via microphone, and the AI responds with text and optionally a sweet feminine voice (OpenAI Nova TTS).
+## 1. System Overview
+J.A.R.V.I.S. is an ultra-responsive, full-stack voice assistant and cybernetic cockpit. Users can interact via natural voice conversation, streaming text chat, and a dynamic HTML5 Canvas HUD. The system features a zero-marginal-cost pipeline leveraging Google's **Gemini 2.0 Flash**, Microsoft **Edge-TTS**, and a singleton-cached **Whisper** Speech-To-Text model.
 
-## Tech Stack
-- **Backend:** Python FastAPI with WebSocket support
-- **Frontend:** React + Vite + TypeScript
-- **AI Provider:** OpenAI (GPT-4o for chat, TTS-1 for voice)
-- **Voice Streaming:** WebSocket for low-latency bidirectional audio
-- **Containerization:** Docker + Docker Compose
+---
 
-## Project Structure
-```
-jarvis/
-├── backend/
-│   ├── app/
-│   │   ├── __init__.py
-│   │   ├── main.py              # FastAPI app, CORS, lifespan
-│   │   ├── config.py            # Settings/env vars
-│   │   ├── api/
-│   │   │   ├── __init__.py
-│   │   │   ├── chat.py          # REST chat endpoint
-│   │   │   └── voice.py         # Voice-related REST endpoints
-│   │   ├── websocket/
-│   │   │   ├── __init__.py
-│   │   │   ├── chat_ws.py       # WebSocket chat with streaming
-│   │   │   └── voice_ws.py      # WebSocket voice streaming (audio in/out)
-│   │   ├── services/
-│   │   │   ├── __init__.py
-│   │   │   ├── openai_service.py # OpenAI API wrapper (chat + TTS)
-│   │   │   └── audio_service.py  # Audio processing helpers
-│   │   └── models/
-│   │       ├── __init__.py
-│   │       └── schemas.py       # Pydantic models
-│   ├── tests/
-│   │   ├── __init__.py
-│   │   ├── test_chat.py
-│   │   ├── test_voice.py
-│   │   └── test_websocket.py
-│   ├── Dockerfile
-│   ├── requirements.txt
-│   ├── .env.example
-│   └── README.md
-├── frontend/
-│   ├── src/
-│   │   ├── App.tsx
-│   │   ├── main.tsx
-│   │   ├── components/
-│   │   │   ├── ChatContainer.tsx
-│   │   │   ├── MessageList.tsx
-│   │   │   ├── MessageInput.tsx
-│   │   │   ├── VoiceButton.tsx
-│   │   │   └── VoiceSettings.tsx
-│   │   ├── hooks/
-│   │   │   ├── useWebSocket.ts
-│   │   │   ├── useAudioRecorder.ts
-│   │   │   └── useAudioPlayer.ts
-│   │   ├── services/
-│   │   │   └── api.ts
-│   │   ├── types/
-│   │   │   └── index.ts
-│   │   └── styles/
-│   │       └── globals.css
-│   ├── public/
-│   ├── index.html
-│   ├── package.json
-│   ├── vite.config.ts
-│   ├── tsconfig.json
-│   └── Dockerfile
-├── docker-compose.yml
-└── README.md
-```
+## 2. Core Tech Stack
+- **Frontend:** React 18 + Vite + TypeScript + HTML5 Canvas API + Web Audio Analyser
+- **Backend:** Python 3.11 + FastAPI + WebSockets + Uvicorn
+- **AI Intelligence:** Google GenAI SDK (`gemini-2.0-flash`) with J.A.R.V.I.S. persona
+- **Speech-To-Text (STT):** OpenAI Whisper (local execution with singleton in-memory caching)
+- **Text-To-Speech (TTS):** Microsoft Edge-TTS neural audio synthesis (`en-US-JennyNeural`)
+- **Containerization:** Docker + Multi-stage Nginx Reverse Proxy + Docker Compose
 
-## Data Flow
+---
 
-### Text Chat
-1. User types message → Frontend sends via WebSocket
-2. Backend receives → Calls OpenAI GPT-4o with streaming
-3. Backend streams tokens back via WebSocket
-4. Frontend renders tokens progressively (typewriter effect)
-
-### Voice Chat
-1. User presses mic button → Frontend captures audio via MediaRecorder API
-2. Audio chunks streamed via WebSocket (voice_ws)
-3. Backend sends audio to OpenAI Whisper (STT) → text
-4. Text sent to GPT-4o → response text streamed
-5. Response text sent to OpenAI TTS (Nova voice) → audio stream
-6. Audio streamed back via WebSocket → Frontend plays via Audio API
+## 3. High-Level Architecture Flow
 
 ```
-[User] → Audio → [Frontend] → WS → [Backend] → Whisper STT → GPT-4o → TTS (Nova) → WS → [Frontend] → Audio → [User]
+┌────────────────────────────────────────────────────────────────────────┐
+│                         FRONTEND (React + Canvas)                      │
+│                                                                        │
+│  [Microphone / Web Audio] ────┐          ┌─── [Arc Reactor HUD]        │
+│                               │          │     (Live audio pulses)     │
+│                               ▼          ▼                             │
+│                  WebSocket Client (ArrayBuffer / JSON)                 │
+└───────────────────────────────────┬────────────────────────────────────┘
+                                    │
+                         WS /ws/voice & /ws/chat
+                                    │
+┌───────────────────────────────────▼────────────────────────────────────┐
+│                         BACKEND (FastAPI Core)                         │
+│                                                                        │
+│  ┌───────────────────────┐ ┌───────────────────────┐ ┌──────────────┐ │
+│  │     voice_ws.py       │ │      chat_ws.py       │ │  FastAPI REST│ │
+│  │ (Full-duplex audio)   │ │  (Token streaming)    │ │ (/api/chat)  │ │
+│  └───────────┬───────────┘ └───────────┬───────────┘ └──────┬───────┘ │
+│              │                         │                    │         │
+│              ▼                         ▼                    ▼         │
+│     ┌─────────────────┐       ┌─────────────────┐ ┌─────────────────┐ │
+│     │  AudioService   │       │    AIService    │ │  AudioService   │ │
+│     │ (Whisper STT)   │       │(Gemini 2.0 Flash│ │(Edge-TTS Synth) │ │
+│     └─────────────────┘       └─────────────────┘ └─────────────────┘ │
+└────────────────────────────────────────────────────────────────────────┘
 ```
 
-## API Endpoints
+---
 
-### REST
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/health` | GET | Health check |
-| `/api/chat` | POST | Send message, get response (non-streaming fallback) |
-| `/api/voice/speak` | POST | Text → TTS audio file |
+## 4. Voice Pipeline Dataflow Sequence
 
-### WebSocket
-| Endpoint | Description |
-|----------|-------------|
-| `/ws/chat` | Streaming text chat (send text → receive tokens) |
-| `/ws/voice` | Streaming voice conversation (send audio → receive audio) |
+```mermaid
+sequenceDiagram
+    autonumber
+    actor User
+    participant FE as Frontend Cockpit
+    participant WS as /ws/voice (FastAPI)
+    participant STT as AudioService (Whisper)
+    participant AI as AIService (Gemini 2.0)
+    participant TTS as AudioService (Edge-TTS)
 
-## WebSocket Protocol
-
-### Chat WS (`/ws/chat`)
-```json
-// Client → Server
-{ "type": "message", "content": "Hello Jarvis" }
-
-// Server → Client
-{ "type": "token", "content": "Hello" }
-{ "type": "token", "content": " sir" }
-{ "type": "done" }
-{ "type": "error", "content": "Error message" }
+    User->>FE: Speaks into Microphone
+    FE->>WS: Sends binary audio chunks (PCM)
+    User->>FE: Stops speaking
+    FE->>WS: {"type": "end_of_audio"}
+    WS->>FE: {"type": "status", "content": "thinking"}
+    WS->>STT: transcribe_audio(audio_buffer)
+    Note over STT: Evaluated via cached model (sub-second)
+    STT-->>WS: "What is our current system status?"
+    WS->>FE: {"type": "transcript", "content": "What is our..."}
+    WS->>AI: get_chat_response(transcript)
+    AI-->>WS: "All systems nominal, sir. Power reserves at 100%."
+    WS->>FE: {"type": "status", "content": "speaking"}
+    WS->>TTS: synthesize_speech(response_text)
+    TTS-->>WS: Raw MP3 bytes stream
+    WS->>FE: Binary audio response frames
+    FE->>User: Audio playback + Arc Reactor frequency visualization
+    WS->>FE: {"type": "status", "content": "listening"}
 ```
 
-### Voice WS (`/ws/voice`)
-Binary frames for audio (Opus/WebM chunks)
-Text frames for metadata:
-```json
-{ "type": "transcript", "content": "Hello Jarvis" }
-{ "type": "status", "content": "listening" }
-{ "type": "status", "content": "thinking" }
-{ "type": "status", "content": "speaking" }
-```
+---
 
-## Configuration (Environment Variables)
-```
-OPENAI_API_KEY=sk-...
-OPENAI_MODEL=gpt-4o
-OPENAI_TTS_MODEL=tts-1
-OPENAI_TTS_VOICE=nova
-OPENAI_STT_MODEL=whisper-1
-WS_MAX_CONNECTIONS=100
-```
+## 5. Key Design Optimizations
 
-## Development Workflow
-1. Backend Engineer: Implement endpoints and services
-2. Frontend Engineer: Build UI components and wire to API
-3. QA Engineer: Write tests and verify end-to-end flows
-4. Team: Review PRs, merge, iterate
+### 5.1 Singleton Whisper STT Caching
+- **The Problem:** In naive implementations, calling `whisper.load_model("base")` inside the WebSocket loop causes multi-hundred megabyte disk I/O and weight allocation on *every voice turn*, adding 1.5–3.5s latency.
+- **The Solution:** `AudioService` caches the model instance upon initial load as a thread-safe singleton in RAM. Subsequent transcription requests execute instantly in sub-second time.
 
-## Deployment
-- Docker Compose for local dev
-- Production: Deploy as two services (backend + frontend)
-- Backend needs: OpenAI API key, CORS configured for frontend domain
+### 5.2 Zero-Cost Neural Voice Synthesis
+- **The Problem:** Commercial cloud voice APIs (e.g. OpenAI TTS, ElevenLabs) charge $0.015 to $0.30 per minute, rendering long realtime sessions expensive.
+- **The Solution:** Integrated Microsoft Edge-TTS streaming protocol (`edge-tts`), delivering near-instant human-quality neural voice output (`en-US-JennyNeural`) with zero external subscription costs.
+
+### 5.3 Resilient Standalone Hybrid Fallback
+- **Browser-Side Brain:** If the FastAPI backend is offline, the frontend gracefully falls back to browser-native Web Speech API synthesis + client-side Wikipedia factual knowledge extraction, ensuring uninterrupted interactive HUD operation.
