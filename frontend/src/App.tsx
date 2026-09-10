@@ -3,6 +3,7 @@ import ChatContainer from './components/ChatContainer'
 import BootSequence from './components/BootSequence'
 import { gatherSystemInfo } from './lib/systemInfo'
 import type { SystemInfo } from './types'
+import ParticleBackground from './components/ParticleBackground'
 import './styles/globals.css'
 
 function App() {
@@ -27,6 +28,7 @@ function App() {
 
   return (
     <>
+      <ParticleBackground />
       {!booted && (
         <BootSequence
           progress={progress}
