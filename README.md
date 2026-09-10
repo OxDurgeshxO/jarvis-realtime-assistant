@@ -8,6 +8,7 @@
 [![React](https://img.shields.io/badge/React-18-61DAFB?style=flat&logo=react&logoColor=black)](https://react.dev/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.0+-3178C6?style=flat&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 [![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?style=flat&logo=docker&logoColor=white)](https://www.docker.com/)
+[![Live Demo](https://img.shields.io/badge/Live%20Demo-GitHub%20Pages-brightgreen?style=flat&logo=github)](https://oxdurgeshxo.github.io/jarvis-realtime-assistant/)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
 An ultra-low-latency, full-stack **realtime voice assistant and cybernetic cockpit** inspired by Tony Stark's iconic J.A.R.V.I.S. Engineered with **Google Gemini 2.0 Flash** for fast reasoning, **Microsoft Edge-TTS** for human-like neural speech synthesis, **singleton cached OpenAI Whisper** for speech-to-text, and a custom **HTML5 Canvas Arc Reactor** that pulsates reactively to live microphone frequencies.
