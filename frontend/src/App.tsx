@@ -36,6 +36,17 @@ function App() {
           onDone={() => setBooted(true)}
         />
       )}
+      {/* Visual Beta Audit Marker */}
+      <div
+        id="beta-audit-badge"
+        className="fixed top-4 right-4 z-50 flex items-center gap-2 px-3 py-1.5 rounded-full bg-cyan-950/80 border border-cyan-500/50 text-cyan-400 text-xs font-mono shadow-lg shadow-cyan-950/50 backdrop-blur-md pointer-events-auto"
+      >
+        <span className="relative flex h-2 w-2">
+          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75"></span>
+          <span className="relative inline-flex rounded-full h-2 w-2 bg-cyan-500"></span>
+        </span>
+        <span className="font-semibold tracking-wide">BETA AUDIT PREVIEW</span>
+      </div>
       <ChatContainer />
     </>
   )

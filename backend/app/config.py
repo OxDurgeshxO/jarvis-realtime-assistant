@@ -5,7 +5,7 @@ class Settings(BaseSettings):
     PROJECT_NAME: str = "J.A.R.V.I.S."
     
     # CORS Origins
-    CORS_ORIGINS: List[str] = ["*"]
+    CORS_ORIGINS: List[str] = ["http://localhost:5173", "http://localhost:8000"]
     
     # Google Gemini Settings
     GOOGLE_API_KEY: str = ""

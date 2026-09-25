@@ -1,7 +1,6 @@
 /**
- * Safely evaluate a simple arithmetic expression without using eval().
- * Only digits, parentheses and the operators + - * / and . are allowed.
- * Returns null if the input is not a valid expression.
+ * Safely parse and calculate an arithmetic expression using recursive descent.
+ * Zero dynamic code execution (no eval, no new Function).
  */
 export function tryCalculate(input: string): number | null {
   const cleaned = input
@@ -18,10 +17,63 @@ export function tryCalculate(input: string): number | null {
   }
 
   try {
-    // Restricted character set already validated above.
-    // eslint-disable-next-line no-new-func
-    const fn = new Function(`"use strict"; return (${cleaned});`);
-    const result = fn();
+    const tokens: string[] = [];
+    const regex = /\d+(?:\.\d+)?|[+\-*/()]/g;
+    let match: RegExpExecArray | null;
+    while ((match = regex.exec(cleaned)) !== null) {
+      tokens.push(match[0]);
+    }
+
+    let pos = 0;
+    const peek = () => tokens[pos];
+    const consume = () => tokens[pos++];
+
+    const parsePrimary = (): number => {
+      const token = consume();
+      if (!token) throw new Error("Unexpected end");
+      if (token === "(") {
+        const val = parseExpression();
+        if (consume() !== ")") throw new Error("Mismatched parens");
+        return val;
+      }
+      if (token === "-") {
+        return -parsePrimary();
+      }
+      if (token === "+") {
+        return parsePrimary();
+      }
+      const num = Number(token);
+      if (isNaN(num)) throw new Error("Invalid number: " + token);
+      return num;
+    };
+
+    const parseFactor = (): number => {
+      let left = parsePrimary();
+      while (peek() === "*" || peek() === "/") {
+        const op = consume();
+        const right = parsePrimary();
+        if (op === "*") left *= right;
+        else {
+          if (right === 0) throw new Error("Division by zero");
+          left /= right;
+        }
+      }
+      return left;
+    };
+
+    const parseExpression = (): number => {
+      let left = parseFactor();
+      while (peek() === "+" || peek() === "-") {
+        const op = consume();
+        const right = parseFactor();
+        if (op === "+") left += right;
+        else left -= right;
+      }
+      return left;
+    };
+
+    const result = parseExpression();
+    if (pos !== tokens.length) return null;
     if (typeof result === "number" && Number.isFinite(result)) {
       return Math.round(result * 1e6) / 1e6;
     }
