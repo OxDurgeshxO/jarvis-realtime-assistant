@@ -1,8 +1,11 @@
 import logging
 import json
+import asyncio
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
+from app.config import settings
 from app.services.ai_service import ai_service
 from app.services.audio_service import audio_service
+from app.services.live_ai_service import JarvisLiveDuplexService
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -79,3 +82,46 @@ async def voice_websocket_endpoint(websocket: WebSocket):
             await websocket.close()
         except Exception:
             pass
+
+
+@router.websocket("/live-duplex")
+async def live_duplex_websocket_endpoint(websocket: WebSocket):
+    """
+    Real-time bidirectional duplex audio streaming using Gemini 3.8 Live API.
+    Streams 16kHz PCM audio directly to Gemini with server-side VAD and receives
+    streaming audio back with sub-300ms turnaround.
+    """
+    await websocket.accept()
+    logger.info("Jarvis Gemini 3.8 Live Duplex WebSocket established")
+    
+    duplex = JarvisLiveDuplexService()
+    try:
+        await duplex.initialize_session()
+        await websocket.send_json({"type": "status", "content": "connected", "model": settings.GEMINI_LIVE_MODEL})
+
+        async def receive_from_client():
+            while True:
+                msg = await websocket.receive()
+                if "bytes" in msg and msg["bytes"]:
+                    await duplex.stream_audio_input(msg["bytes"])
+                elif "text" in msg:
+                    data = json.loads(msg["text"])
+                    if data.get("type") == "ping":
+                        await websocket.send_json({"type": "pong"})
+
+        async def send_to_client():
+            async for audio_chunk in duplex.receive_audio_output():
+                await websocket.send_bytes(audio_chunk)
+
+        await asyncio.gather(receive_from_client(), send_to_client())
+
+    except WebSocketDisconnect:
+        logger.info("Jarvis Live Duplex WebSocket disconnected")
+    except Exception as e:
+        logger.error(f"Live Duplex WebSocket error: {e}")
+        try:
+            await websocket.send_json({"type": "error", "content": str(e)})
+        except Exception:
+            pass
+    finally:
+        await duplex.close()
