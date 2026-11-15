@@ -3,6 +3,8 @@ import MessageList from './MessageList'
 import MessageInput from './MessageInput'
 import VoiceButton from './VoiceButton'
 import ArcReactor from './ArcReactor'
+import ThinkingOrb from './ThinkingOrb'
+import LiquidGlassWrapper from './LiquidGlassWrapper'
 import SystemPanel from './SystemPanel'
 import PerformancePanel from './PerformancePanel'
 import CommandHints from './CommandHints'
@@ -394,26 +396,28 @@ export default function ChatContainer() {
                 <SystemPanel system={system} scanning={scanning} onRescan={scanSystem} />
               </div>
 
-              {/* Center: Arc Reactor */}
+              {/* Center: Arc Reactor & Liquid Glass HUD */}
               <div className="flex flex-col items-center justify-center py-1">
-                <div className="relative">
-                  <ArcReactor
-                    mode={voiceStatus}
-                    levelRef={speech.listening ? micLevelRef : fallbackLevelRef}
-                    size={210}
-                  />
-                </div>
-                <div className="mt-1 flex items-center gap-2">
-                  <span className="text-[10px] uppercase tracking-widest text-cyan-300/60">REACTOR:</span>
-                  <span className="font-display text-xs font-bold uppercase tracking-wider text-cyan-200 text-glow">
-                    {voiceStatus}
-                  </span>
-                  {speech.interim && (
-                    <span className="text-[11px] font-mono text-cyan-300/90 italic truncate max-w-[200px]">
-                      "{speech.interim}"
+                <LiquidGlassWrapper className="p-3 rounded-3xl flex flex-col items-center">
+                  <div className="relative">
+                    <ArcReactor
+                      mode={voiceStatus}
+                      levelRef={speech.listening ? micLevelRef : fallbackLevelRef}
+                      size={200}
+                    />
+                  </div>
+                  <div className="mt-2 flex items-center gap-2.5">
+                    <span className="text-[10px] uppercase tracking-widest text-cyan-300/60 font-mono">NEURAL CORE:</span>
+                    <span className="font-display text-xs font-bold uppercase tracking-wider text-cyan-200 text-glow">
+                      {voiceStatus}
                     </span>
-                  )}
-                </div>
+                    {speech.interim && (
+                      <span className="text-[11px] font-mono text-cyan-300/90 italic truncate max-w-[200px]">
+                        "{speech.interim}"
+                      </span>
+                    )}
+                  </div>
+                </LiquidGlassWrapper>
               </div>
 
               {/* Right: Performance Panel */}
@@ -436,6 +440,9 @@ export default function ChatContainer() {
 
         {/* Console Input Bar */}
         <div className="flex items-center gap-3 px-6 py-3 border-t border-cyan-400/20 bg-slate-950/80 backdrop-blur-md shrink-0">
+          <div className="hidden sm:block">
+            <ThinkingOrb status={voiceStatus} levelRef={speech.listening ? micLevelRef : fallbackLevelRef} size={36} />
+          </div>
           <VoiceButton
             status={voiceStatus}
             onToggle={handleVoiceToggle}
