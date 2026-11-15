@@ -18,6 +18,7 @@ class Settings(BaseSettings):
     
     # Voice Personality (Puck: Eloquent British dry wit)
     VOICE_NAME: str = "Puck"
+    EDGE_TTS_VOICE: str = "en-GB-RyanNeural"
     
     # WebSocket Settings
     WS_MAX_CONNECTIONS: int = 100
