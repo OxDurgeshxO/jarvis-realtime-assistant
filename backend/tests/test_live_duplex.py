@@ -1,11 +1,17 @@
-import asyncio
 import os
 import sys
+import pytest
 
-# Test harness verifying syntax and structure of JarvisLiveDuplexService
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+# Ensure app and services directories are in sys.path
+backend_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+app_dir = os.path.join(backend_dir, "app")
+services_dir = os.path.join(app_dir, "services")
 
-try:
+for p in [backend_dir, app_dir, services_dir]:
+    if p not in sys.path:
+        sys.path.insert(0, p)
+
+def test_live_duplex_structure():
     from live_ai_service import JarvisLiveDuplexService, JARVIS_SYSTEM_INSTRUCTION
     from config import settings
     
@@ -13,7 +19,3 @@ try:
     assert service.client is not None
     assert settings.GEMINI_LIVE_MODEL == "models/gemini-3.8-flash"
     assert settings.AUDIO_SAMPLE_RATE == 16000
-    print("✓ Live AI Service structure and settings validated successfully.")
-except Exception as e:
-    print(f"Error validating Live AI Service: {e}")
-    sys.exit(1)

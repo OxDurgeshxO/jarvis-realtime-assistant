@@ -42,7 +42,7 @@ jobs:
         env:
           GEMINI_API_KEY: "test-ci-key-placeholder"
         run: |
-          pytest backend/tests/ -v
+          PYTHONPATH=backend:backend/app:backend/app/services pytest backend/tests/ -v
 
   deploy:
     name: Build & Deploy Frontend
