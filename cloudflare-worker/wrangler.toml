@@ -1,0 +1,6 @@
+name = "jarvis-ephemeral-token-proxy"
+main = "src/index.ts"
+compatibility_date = "2026-11-15"
+
+[vars]
+CORS_ORIGIN = "*"
