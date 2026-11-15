@@ -216,3 +216,32 @@ jarvis-realtime-assistant/
 ## 📄 License
 
 Distributed under the MIT License. See `LICENSE` for more information.
+
+
+## 📐 Realtime Streaming Architecture
+
+```mermaid
+flowchart LR
+    subgraph Browser ["Frontend Cockpit (React + TypeScript)"]
+        Mic["Microphone Input (AudioWorklet)"] --> Stream["Raw PCM Audio Stream"]
+        AudioOut["Audio Playback Buffer"]
+        HUD["Reactive Iron Man HUD Telemetry"]
+    end
+
+    subgraph Backend ["FastAPI WebSocket Server"]
+        WS["WebSocket Audio Dispatch"]
+        VAD["Voice Activity Detection (Whisper STT)"]
+        TTS["Edge-TTS Neural Synthesizer"]
+    end
+
+    subgraph Gemini ["Google Gemini 2.0 Flash"]
+        LiveAPI["Gemini Live Multimodal Stream"]
+    end
+
+    Stream --> WS
+    WS --> VAD
+    VAD --> LiveAPI
+    LiveAPI --> TTS
+    TTS --> AudioOut
+    LiveAPI --> HUD
+```
