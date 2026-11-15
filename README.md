@@ -11,7 +11,13 @@
 [![Live Demo](https://img.shields.io/badge/Live%20Demo-GitHub%20Pages-brightgreen?style=flat&logo=github)](https://oxdurgeshxo.github.io/jarvis-realtime-assistant/)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
+<p align="center">
+  <img src="assets/demo.svg" alt="J.A.R.V.I.S. Realtime Architecture Banner" width="100%" />
+</p>
+
 An ultra-low-latency, full-stack **realtime voice assistant and cybernetic cockpit** inspired by Tony Stark's iconic J.A.R.V.I.S. Engineered with **Google Gemini 2.0 Flash** for fast reasoning, **Microsoft Edge-TTS** for human-like neural speech synthesis, **singleton cached OpenAI Whisper** for speech-to-text, and a custom **HTML5 Canvas Arc Reactor** that pulsates reactively to live microphone frequencies.
+
+> 📖 **Deep Technical Case Study:** Read the architectural analysis in [docs/CASE_STUDY_GEMINI_LIVE.md](docs/CASE_STUDY_GEMINI_LIVE.md) for latency budgets, AudioWorklet PCM streaming benchmarks, and zero-allocation WebSocket design.
 
 ---
 
