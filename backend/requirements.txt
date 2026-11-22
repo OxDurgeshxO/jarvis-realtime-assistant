@@ -4,7 +4,7 @@ websockets>=17.4
 python-dotenv>=1.2.4
 pydantic>=2.14.3
 pydantic-settings>=2.3.4
-google-genai>=1.0.0
+google-genai>=3.6.1
 edge-tts>=6.1.0
 openai-whisper>=20250625
 httpx<0.28
